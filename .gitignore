@@ -1,0 +1,6 @@
+.idea/*
+*.exe*
+*.dll
+tdlib-db/*
+tdlib-files/*
+*.txt
