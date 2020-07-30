@@ -5,3 +5,4 @@ tdlib-db/*
 tdlib-files/*
 *.txt
 *.mp4
+release/*

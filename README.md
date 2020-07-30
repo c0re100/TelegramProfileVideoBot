@@ -8,21 +8,25 @@ __You can upload original video for Profile Video.__
 2. __Video filesize <= 2MB__
 3. __Video time <= 10 seconds__
 
+**How to use**
+
+To change your profile video, please upload/forward the animation(gif) to Saved Messages first and reply this with `/pv`.
+
 **Bot Command:**
 
 1. `/id`
 
-2. Reply animation(gifs) message with `/pv {optional}`
+2. Reply animation(gif) message with `/pv {optional}`
 
 **Command Example**
 
 `/id`: Get current group/channel ID
 
-`/pv`: Change your profile video
+`/pv`: Change your/group profile video
 
-`/pv 1`: Your profile video cover is 01s:00ms
+`/pv 1`: Your/Group profile video cover is 01s:00ms
 
-`/pv 1.11`: Your profile video cover is 01s:11ms
+`/pv 1.11`: Your/Group profile video cover is 01s:11ms
 
 `/pv -10010000000000`: Change group/channel profile video
 
@@ -31,6 +35,7 @@ __You can upload original video for Profile Video.__
 ### Requirement
 1. [TDLib](https://github.com/tdlib/td#building)
 2. go get github.com/c0re100/go-tdlib
+3. go get golang.org/x/crypto/ssh/terminal
 
 ### Building
 
