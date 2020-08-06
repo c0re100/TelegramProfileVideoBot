@@ -101,7 +101,7 @@ func (tg *Client) setProfilePhoto(chatId, msgId, msgRtmId int64, msgText string)
                     if len(extract) > 1 || cId < 0 {
                         _, err = tg.client.SetChatPhoto(cId, tdlib.NewInputChatPhotoAnimation(tdlib.NewInputFileLocal("pv.mp4"), ts))
                     } else {
-                        _, err = tg.client.SetProfilePhoto(tdlib.NewInputChatPhotoAnimation(tdlib.NewInputFileLocal("pp.mp4"), ts))
+                        _, err = tg.client.SetProfilePhoto(tdlib.NewInputChatPhotoAnimation(tdlib.NewInputFileLocal("pv.mp4"), ts))
                     }
                     if err != nil {
                         msgText = tdlib.NewInputMessageText(tdlib.NewFormattedText(preText+"Can't change profile video - "+err.Error(), nil), true, false)
