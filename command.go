@@ -11,7 +11,7 @@ import (
 
 func GetSenderId(sender tdlib.MessageSender) int64 {
 	if sender.GetMessageSenderEnum() == "messageSenderUser" {
-		return int64(sender.(*tdlib.MessageSenderUser).UserId)
+		return sender.(*tdlib.MessageSenderUser).UserId
 	} else {
 		return sender.(*tdlib.MessageSenderChat).ChatId
 	}
