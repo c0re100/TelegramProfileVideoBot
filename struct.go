@@ -1,27 +1,28 @@
 package main
 
-import "github.com/c0re100/go-tdlib"
+import (
+	tdlib "github.com/c0re100/gotdlib/client"
+)
 
 type Client struct {
-	client   *tdlib.Client
-	clientId int64
+	Client   *tdlib.Client
+	ClientId int64
 }
 
-func tdConfig() *tdlib.Client {
-	return tdlib.NewClient(tdlib.Config{
-		APIID:                  "132712",
-		APIHash:                "e82c07ad653399a37baca8d1e498e472",
-		SystemLanguageCode:     "en",
-		DeviceModel:            "ProfileVideoHelper",
-		SystemVersion:          "1.0",
-		ApplicationVersion:     "1.0",
-		UseMessageDatabase:     true,
-		UseFileDatabase:        true,
-		UseChatInfoDatabase:    true,
-		UseTestDataCenter:      false,
-		DatabaseDirectory:      "./tdlib-db",
-		FileDirectory:          "./tdlib-files",
-		IgnoreFileNames:        false,
-		EnableStorageOptimizer: true,
-	})
+func GetTdParameters() *tdlib.SetTdlibParametersRequest {
+	return &tdlib.SetTdlibParametersRequest{
+		UseTestDc:           false,
+		DatabaseDirectory:   "./tdlib-db",
+		FilesDirectory:      "./tdlib-files",
+		UseFileDatabase:     true,
+		UseChatInfoDatabase: true,
+		UseMessageDatabase:  true,
+		UseSecretChats:      false,
+		ApiId:               132712,
+		ApiHash:             "e82c07ad653399a37baca8d1e498e472",
+		SystemLanguageCode:  "en",
+		DeviceModel:         "ProfileVideoHelper",
+		SystemVersion:       "1.1",
+		ApplicationVersion:  "1.1",
+	}
 }

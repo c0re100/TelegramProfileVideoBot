@@ -1,18 +1,16 @@
 package main
 
 import (
-	"github.com/c0re100/go-tdlib"
+	tdlib "github.com/c0re100/gotdlib/client"
 )
 
 func main() {
-	tdlib.SetLogVerbosityLevel(0)
+	tdlib.SetLogLevel(1)
 	tdlib.SetFilePath("./errors.txt")
 
-	tg := &Client{
-		client: tdConfig(),
-	}
-	tg.login()
-	go tg.checkNewNessage()
+	helper := &Client{}
+	helper.login()
+	go helper.checkNewNessage()
 
 	// Prevent process exit
 	theBestPreventExitWay := make(chan struct{})

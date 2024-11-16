@@ -6,39 +6,29 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/c0re100/go-tdlib"
+	tdlib "github.com/c0re100/gotdlib/client"
 )
 
-func GetSenderId(sender tdlib.MessageSender) int64 {
-	if sender.GetMessageSenderEnum() == "messageSenderUser" {
-		return sender.(*tdlib.MessageSenderUser).UserId
-	} else {
-		return sender.(*tdlib.MessageSenderChat).ChatId
-	}
-}
-
-func (tg *Client) checkNewNessage() {
+func (helper *Client) checkNewNessage() {
 	fmt.Println("[Helper] New Message Receiver")
-	eventFilter := func(msg *tdlib.TdMessage) bool {
-		updateMsg := (*msg).(*tdlib.UpdateNewMessage)
-		if GetSenderId(updateMsg.Message.Sender) == tg.clientId { // Prevent users abuse your userbot :)
-			return true
-		}
-		return false
-	}
 
-	receiver := tg.client.AddEventReceiver(&tdlib.UpdateNewMessage{}, eventFilter, 1000)
-	for newMsg := range receiver.Chan {
-		go func(newMsg tdlib.TdMessage) {
-			updateMsg := (newMsg).(*tdlib.UpdateNewMessage)
+	receiver := helper.Client.AddEventReceiver(&tdlib.UpdateNewMessage{}, 1000)
+	for newMsg := range receiver.Updates {
+		go func(newMsg tdlib.Type) {
+			updateMsg := newMsg.(*tdlib.UpdateNewMessage)
 			chatId := updateMsg.Message.ChatId
 			msgId := updateMsg.Message.Id
-			msgRtmId := updateMsg.Message.ReplyToMessageId
+			senderId := GetSenderId(updateMsg.Message.SenderId)
+			msgRtmId := GetReplyMessageId(updateMsg.Message.ReplyTo)
+
+			if senderId != helper.ClientId {
+				return
+			}
 
 			var msgText string
-			var msgEnt []tdlib.TextEntity
+			var msgEnt []*tdlib.TextEntity
 
-			switch updateMsg.Message.Content.GetMessageContentEnum() {
+			switch updateMsg.Message.Content.MessageContentType() {
 			case "messageText":
 				msgText = updateMsg.Message.Content.(*tdlib.MessageText).Text.Text
 				msgEnt = updateMsg.Message.Content.(*tdlib.MessageText).Text.Entities
@@ -46,37 +36,50 @@ func (tg *Client) checkNewNessage() {
 				return
 			}
 
-			switch CheckCommand(msgText, msgEnt) {
+			switch tdlib.CheckCommand(msgText, msgEnt) {
 			case "/id":
-				msgText := tdlib.NewInputMessageText(tdlib.NewFormattedText(fmt.Sprintf("Current Group ID: %v", chatId), nil), true, false)
-				tg.client.EditMessageText(chatId, msgId, nil, msgText)
+				_, _ = helper.Client.EditMessageText(&tdlib.EditMessageTextRequest{
+					ChatId:    chatId,
+					MessageId: msgId,
+					InputMessageContent: &tdlib.InputMessageText{
+						Text: &tdlib.FormattedText{
+							Text: fmt.Sprintf("Current Group ID: %v", chatId),
+						},
+					},
+				})
 			case "/pv":
-				tg.setProfilePhoto(chatId, msgId, msgRtmId, msgText)
+				helper.setProfilePhoto(chatId, msgId, msgRtmId, msgText)
 			}
 		}(newMsg)
 	}
 }
 
-func (tg *Client) setProfilePhoto(chatId, msgId, msgRtmId int64, msgText string) {
+func (helper *Client) setProfilePhoto(chatId, msgId, msgRtmId int64, text string) {
 	if msgRtmId != 0 {
 		var cId int64
 		var ts float64
 		var err error
 
-		extract := strings.Split(CommandArgument(msgText), " ")
-		preText := msgText + "\n\nResult: "
+		extract := strings.Split(tdlib.CommandArgument(text), " ")
+		preText := text + "\n\nResult: "
 
 		if len(extract) > 1 {
 			cId, err = strconv.ParseInt(extract[0], 10, 64)
 			if cId >= 0 {
-				msgText := tdlib.NewInputMessageText(tdlib.NewFormattedText(preText+"Chat ID should be negative.", nil), true, false)
-				tg.client.EditMessageText(chatId, msgId, nil, msgText)
+				msgText := &tdlib.InputMessageText{Text: &tdlib.FormattedText{Text: preText + "Chat ID should be negative."}}
+				_, _ = helper.Client.EditMessageText(
+					&tdlib.EditMessageTextRequest{
+						ChatId:              chatId,
+						MessageId:           msgId,
+						InputMessageContent: msgText,
+					},
+				)
 				return
 			}
 			ts, err = strconv.ParseFloat(extract[1], 64)
 		} else {
 			cId = chatId
-			ts, err = strconv.ParseFloat(CommandArgument(msgText), 64)
+			ts, err = strconv.ParseFloat(tdlib.CommandArgument(text), 64)
 		}
 
 		if err != nil {
@@ -88,43 +91,81 @@ func (tg *Client) setProfilePhoto(chatId, msgId, msgRtmId int64, msgText string)
 			ts = 0
 		}
 
-		rm, err := tg.client.GetMessage(chatId, msgRtmId)
+		rm, err := helper.Client.GetMessage(&tdlib.GetMessageRequest{
+			ChatId:    chatId,
+			MessageId: msgRtmId,
+		})
 		if err != nil {
-			msgText := tdlib.NewInputMessageText(tdlib.NewFormattedText(preText+err.Error(), nil), true, false)
-			tg.client.EditMessageText(chatId, msgId, nil, msgText)
+			msgText := &tdlib.InputMessageText{Text: &tdlib.FormattedText{Text: preText + err.Error()}}
+			_, _ = helper.Client.EditMessageText(&tdlib.EditMessageTextRequest{
+				ChatId:              chatId,
+				MessageId:           msgId,
+				InputMessageContent: msgText,
+			})
 			return
 		}
 
-		if rm.Content.GetMessageContentEnum() == "messageAnimation" {
+		if rm.Content.MessageContentType() == tdlib.TypeMessageAnimation {
 			var msgText *tdlib.InputMessageText
 			if rm.Content.(*tdlib.MessageAnimation).Animation.Width == rm.Content.(*tdlib.MessageAnimation).Animation.Height &&
-				rm.Content.(*tdlib.MessageAnimation).Animation.Width <= 800 && rm.Content.(*tdlib.MessageAnimation).Animation.Height <= 800 {
-				f, err := tg.client.DownloadFile(rm.Content.(*tdlib.MessageAnimation).Animation.Animation.Id, 1, 0, 0, true)
+				rm.Content.(*tdlib.MessageAnimation).Animation.Width <= 1200 && rm.Content.(*tdlib.MessageAnimation).Animation.Height <= 1200 {
+				f, err := helper.Client.DownloadFile(
+					&tdlib.DownloadFileRequest{
+						FileId:      rm.Content.(*tdlib.MessageAnimation).Animation.Animation.Id,
+						Priority:    1,
+						Offset:      0,
+						Limit:       0,
+						Synchronous: true,
+					})
 				if err != nil {
-					msgText = tdlib.NewInputMessageText(tdlib.NewFormattedText(preText+"Can't download this file - "+err.Error(), nil), true, false)
+					msgText := &tdlib.InputMessageText{Text: &tdlib.FormattedText{Text: preText + "Can't download this file - " + err.Error()}}
+					_, _ = helper.Client.EditMessageText(&tdlib.EditMessageTextRequest{
+						ChatId:              chatId,
+						MessageId:           msgId,
+						InputMessageContent: msgText,
+					})
 					return
 				} else {
 					// Workaround for abs path bug(?)
-					os.Rename(f.Local.Path, "pv.mp4")
+					_ = os.Rename(f.Local.Path, "pv.mp4")
 					if len(extract) > 1 || cId < 0 {
-						_, err = tg.client.SetChatPhoto(cId, tdlib.NewInputChatPhotoAnimation(tdlib.NewInputFileLocal("pv.mp4"), ts))
+						_, err = helper.Client.SetChatPhoto(&tdlib.SetChatPhotoRequest{
+							ChatId: cId,
+							Photo: &tdlib.InputChatPhotoAnimation{
+								Animation: &tdlib.InputFileLocal{
+									Path: "pv.mp4",
+								},
+								MainFrameTimestamp: ts,
+							},
+						})
 					} else {
-						_, err = tg.client.SetProfilePhoto(tdlib.NewInputChatPhotoAnimation(tdlib.NewInputFileLocal("pv.mp4"), ts))
+						_, err = helper.Client.SetProfilePhoto(&tdlib.SetProfilePhotoRequest{
+							Photo: &tdlib.InputChatPhotoAnimation{
+								Animation: &tdlib.InputFileLocal{
+									Path: "pv.mp4",
+								},
+								MainFrameTimestamp: ts,
+							},
+						})
 					}
 					if err != nil {
-						msgText = tdlib.NewInputMessageText(tdlib.NewFormattedText(preText+"Can't change profile video - "+err.Error(), nil), true, false)
+						msgText = &tdlib.InputMessageText{Text: &tdlib.FormattedText{Text: preText + "Can't change profile video - " + err.Error()}}
 					} else {
-						msgText = tdlib.NewInputMessageText(tdlib.NewFormattedText(preText+"Profile video is changed.", nil), true, false)
+						msgText = &tdlib.InputMessageText{Text: &tdlib.FormattedText{Text: preText + "Profile video is changed."}}
 					}
 				}
 			} else if rm.Content.(*tdlib.MessageAnimation).Animation.Duration > 10 {
-				msgText = tdlib.NewInputMessageText(tdlib.NewFormattedText(preText+"Duration too long. (Limit: <= 10 second)", nil), true, false)
+				msgText = &tdlib.InputMessageText{Text: &tdlib.FormattedText{Text: preText + "Duration too long. (Limit: <= 10 second)"}}
 			} else if rm.Content.(*tdlib.MessageAnimation).Animation.Animation.Size > 2*1024*1024 {
-				msgText = tdlib.NewInputMessageText(tdlib.NewFormattedText(preText+"Filesize too big. (Limit: <= 2 MB)", nil), true, false)
+				msgText = &tdlib.InputMessageText{Text: &tdlib.FormattedText{Text: preText + "Filesize too big. (Limit: <= 2 MB)"}}
 			} else {
-				msgText = tdlib.NewInputMessageText(tdlib.NewFormattedText(preText+"Inconsistent size of animation.\nSquare video only (Limit: smaller or equal than 800*800))", nil), true, false)
+				msgText = &tdlib.InputMessageText{Text: &tdlib.FormattedText{Text: preText + "Inconsistent size of animation.\nSquare video only (Limit: smaller or equal than 1200*1200))"}}
 			}
-			tg.client.EditMessageText(chatId, msgId, nil, msgText)
+			_, _ = helper.Client.EditMessageText(&tdlib.EditMessageTextRequest{
+				ChatId:              chatId,
+				MessageId:           msgId,
+				InputMessageContent: msgText,
+			})
 		}
 	}
 }
