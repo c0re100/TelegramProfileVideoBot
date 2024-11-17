@@ -109,7 +109,7 @@ func (helper *Client) setProfilePhoto(chatId, msgId, msgRtmId int64, text string
 			var msgText *tdlib.InputMessageText
 			if rm.Content.(*tdlib.MessageAnimation).Animation.Width == rm.Content.(*tdlib.MessageAnimation).Animation.Height &&
 				rm.Content.(*tdlib.MessageAnimation).Animation.Width <= 1200 && rm.Content.(*tdlib.MessageAnimation).Animation.Height <= 1200 {
-				f, err := helper.Client.DownloadFile(
+				f, dErr := helper.Client.DownloadFile(
 					&tdlib.DownloadFileRequest{
 						FileId:      rm.Content.(*tdlib.MessageAnimation).Animation.Animation.Id,
 						Priority:    1,
@@ -117,8 +117,8 @@ func (helper *Client) setProfilePhoto(chatId, msgId, msgRtmId int64, text string
 						Limit:       0,
 						Synchronous: true,
 					})
-				if err != nil {
-					msgText := &tdlib.InputMessageText{Text: &tdlib.FormattedText{Text: preText + "Can't download this file - " + err.Error()}}
+				if dErr != nil {
+					msgText = &tdlib.InputMessageText{Text: &tdlib.FormattedText{Text: preText + "Can't download this file - " + dErr.Error()}}
 					_, _ = helper.Client.EditMessageText(&tdlib.EditMessageTextRequest{
 						ChatId:              chatId,
 						MessageId:           msgId,
