@@ -33,7 +33,7 @@ To change your profile video, please upload/forward the animation(gif) to Saved 
 `/pv -10010000000000 1.1`: Change group/channel profile video with specific cover time
 
 ### Requirement
-1. modded TDLib
+1. [modded TDLib](https://github.com/c0re100/td)
 
 ### Building
 
