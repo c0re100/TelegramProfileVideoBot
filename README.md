@@ -4,7 +4,7 @@ __You can upload original video for Profile Video.__
 
 ***Profile Video Requirement:***
 
-1. __Video resolution <= 800*800 and SQUARE (width and height must be equal.)__
+1. __Video resolution <= 1200*1200 and SQUARE (width and height must be equal.)__
 2. __Video filesize <= 2MB__
 3. __Video time <= 10 seconds__
 
@@ -33,9 +33,7 @@ To change your profile video, please upload/forward the animation(gif) to Saved 
 `/pv -10010000000000 1.1`: Change group/channel profile video with specific cover time
 
 ### Requirement
-1. [TDLib](https://github.com/tdlib/td#building)
-2. go get github.com/c0re100/go-tdlib
-3. go get golang.org/x/crypto/ssh/terminal
+1. modded TDLib
 
 ### Building
 
